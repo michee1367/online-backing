@@ -7,6 +7,7 @@ import com.villagesat.transaction.domain.model.Transaction;
 import com.villagesat.transaction.domain.port.out.FraudScoringPort;
 import com.villagesat.transaction.domain.port.out.TransactionEventPublisher;
 import com.villagesat.transaction.domain.port.out.TransactionRepository;
+import com.villagesat.transaction.domain.port.out.WalletQueryPort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +23,7 @@ public class TransferService {
 
     private final TransactionRepository transactionRepository;
     private final WalletClient walletClient;
+    private final WalletQueryPort walletQueryPort;
     private final FraudScoringPort fraudScoringPort;
     private final TransactionEventPublisher eventPublisher;
     private final IdempotencyService idempotencyService;
@@ -29,12 +31,14 @@ public class TransferService {
 
     public TransferService(TransactionRepository transactionRepository,
                            WalletClient walletClient,
+                           WalletQueryPort walletQueryPort,
                            FraudScoringPort fraudScoringPort,
                            TransactionEventPublisher eventPublisher,
                            IdempotencyService idempotencyService,
                            FeeCalculator feeCalculator) {
         this.transactionRepository = transactionRepository;
         this.walletClient = walletClient;
+        this.walletQueryPort = walletQueryPort;
         this.fraudScoringPort = fraudScoringPort;
         this.eventPublisher = eventPublisher;
         this.idempotencyService = idempotencyService;
@@ -55,18 +59,21 @@ public class TransferService {
 
         UUID userId = SecurityUtils.getCurrentUserId();
 
-        // 2. Fraud scoring (sync, timeout 200ms)
+        // 2. Validate wallet currencies match
+        validateWalletCurrencies(command);
+
+        // 3. Fraud scoring (sync, timeout 200ms)
         var fraudResult = fraudScoringPort.score(new FraudScoringPort.FraudRequest(
                 userId, command.sourceWalletId(), command.amount(), command.currency()));
         if (fraudResult.action() == FraudScoringPort.FraudAction.BLOCK) {
             throw new FraudBlockedException(fraudResult.score());
         }
 
-        // 3. Calculate fee
+        // 4. Calculate fee
         BigDecimal fee = feeCalculator.calculateTransferFee(command.amount());
         BigDecimal totalDebit = command.amount().add(fee);
 
-        // 4. Create pending transaction
+        // 5. Create pending transaction
         Transaction transaction = Transaction.createInternalTransfer(
                 command.idempotencyKey(), command.sourceWalletId(), command.destinationWalletId(),
                 command.amount(), fee, command.currency(), command.description(), userId);
@@ -74,15 +81,15 @@ public class TransferService {
         transaction = transactionRepository.save(transaction.markProcessing());
 
         try {
-            // 5. Debit source (includes fee)
+            // 6. Debit source (includes fee)
             walletClient.debit(command.sourceWalletId(), transaction.id(), totalDebit,
                     "Transfer to " + command.destinationWalletId());
 
-            // 6. Credit destination
+            // 7. Credit destination
             walletClient.credit(command.destinationWalletId(), transaction.id(), command.amount(),
                     "Transfer from " + command.sourceWalletId());
 
-            // 7. Complete transaction
+            // 8. Complete transaction
             transaction = transactionRepository.save(transaction.complete());
 
             TransferResult result = TransferResult.from(transaction);
@@ -93,6 +100,22 @@ public class TransferService {
         } catch (Exception e) {
             transactionRepository.save(transaction.fail(e.getMessage()));
             throw e;
+        }
+    }
+
+    private void validateWalletCurrencies(TransferCommand command) {
+        var sourceWallet = walletQueryPort.findById(command.sourceWalletId());
+        var destinationWallet = walletQueryPort.findById(command.destinationWalletId());
+
+        String sourceCurrency = sourceWallet.currency().toUpperCase();
+        String destinationCurrency = destinationWallet.currency().toUpperCase();
+        String requestedCurrency = command.currency().toUpperCase();
+
+        if (!sourceCurrency.equals(destinationCurrency)) {
+            throw new CurrencyMismatchException(sourceCurrency, destinationCurrency);
+        }
+        if (!sourceCurrency.equals(requestedCurrency)) {
+            throw new CurrencyMismatchException(requestedCurrency, sourceCurrency);
         }
     }
 
@@ -129,6 +152,13 @@ public class TransferService {
     public static class FraudBlockedException extends RuntimeException {
         public FraudBlockedException(int score) {
             super("Transaction blocked by fraud detection. Score: " + score);
+        }
+    }
+
+    public static class CurrencyMismatchException extends RuntimeException {
+        public CurrencyMismatchException(String sourceCurrency, String destinationCurrency) {
+            super("Wallet currencies must match for transfer: %s vs %s"
+                    .formatted(sourceCurrency, destinationCurrency));
         }
     }
 }

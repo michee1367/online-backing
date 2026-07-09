@@ -11,6 +11,8 @@ public interface WalletUseCase {
 
     Wallet getWallet(UUID walletId, UUID userId);
 
+    Wallet getWalletById(UUID walletId);
+
     List<Wallet> listWallets(UUID userId);
 
     Wallet lookupByAccountNumber(String accountNumber);

@@ -1,8 +1,8 @@
 package com.villagesat.wallet.adapter.in.web;
 
-import com.villagesat.wallet.application.service.BalanceService;
 import com.villagesat.wallet.domain.port.in.BalanceUseCase;
 import com.villagesat.wallet.domain.port.in.WalletKycUseCase;
+import com.villagesat.wallet.domain.port.in.WalletUseCase;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -22,11 +22,20 @@ public class InternalWalletController {
 
     private final BalanceUseCase balanceUseCase;
     private final WalletKycUseCase walletKycUseCase;
+    private final WalletUseCase walletUseCase;
 
     public InternalWalletController(BalanceUseCase balanceUseCase,
-                                    WalletKycUseCase walletKycUseCase) {
+                                    WalletKycUseCase walletKycUseCase,
+                                    WalletUseCase walletUseCase) {
         this.balanceUseCase = balanceUseCase;
         this.walletKycUseCase = walletKycUseCase;
+        this.walletUseCase = walletUseCase;
+    }
+
+    @GetMapping("/{walletId}")
+    public ResponseEntity<InternalWalletResponse> getWallet(@PathVariable("walletId") UUID walletId) {
+        var wallet = walletUseCase.getWalletById(walletId);
+        return ResponseEntity.ok(new InternalWalletResponse(wallet.id(), wallet.currency()));
     }
 
     @PostMapping("/{walletId}/debit")
@@ -55,6 +64,8 @@ public class InternalWalletController {
     public record ApplyKycLimitsRequest(@NotNull Integer kycLevel) {}
 
     public record KycLimitsResponse(UUID userId, int kycLevel, int walletsUpdated) {}
+
+    public record InternalWalletResponse(UUID walletId, String currency) {}
 
     public record InternalOperationRequest(
             @NotNull UUID transactionId,
