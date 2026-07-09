@@ -1,0 +1,72 @@
+spring:
+  application:
+    name: fraud-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:villagesat}
+    username: ${DB_USER:villagesat}
+    password: ${DB_PASSWORD:villagesat_secret}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        default_schema: fraud
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    schemas: fraud
+    default-schema: fraud
+    table: flyway_fraud_history
+    locations: classpath:db/migration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    consumer:
+      group-id: fraud-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER:http://localhost:8180/realms/villagesat}
+
+villagesat:
+  internal-service-token: ${INTERNAL_SERVICE_TOKEN:dev-internal-token}
+  fraud:
+    amount-threshold: 10000
+    large-transfer-threshold: 50000
+    velocity-limit: 5
+    velocity-window-hours: 1
+
+server:
+  port: 8088
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: when_authorized
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.villagesat: INFO
+  pattern:
+    console: '{"timestamp":"%d","level":"%p","traceId":"%X{traceId}","service":"fraud-service","msg":"%m"}%n'

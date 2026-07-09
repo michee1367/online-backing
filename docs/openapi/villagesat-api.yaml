@@ -1,0 +1,232 @@
+openapi: 3.1.0
+info:
+  title: VillageSat Fintech API
+  version: 1.0.0
+  description: API REST pour la plateforme fintech VillageSat
+  contact:
+    name: VillageSat Engineering
+    email: api@villagesat.com
+
+servers:
+  - url: https://api.villagesat.com/api/v1
+    description: Production
+  - url: https://api-staging.villagesat.com/api/v1
+    description: Staging
+  - url: http://localhost:8080/api/v1
+    description: Local
+
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            requestId:
+              type: string
+              format: uuid
+            timestamp:
+              type: string
+              format: date-time
+
+    Wallet:
+      type: object
+      properties:
+        walletId:
+          type: string
+          format: uuid
+        accountNumber:
+          type: string
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+        balance:
+          type: string
+        availableBalance:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, FROZEN, CLOSED]
+
+    TransferRequest:
+      type: object
+      required: [sourceWalletId, destinationWalletId, amount, currency]
+      properties:
+        sourceWalletId:
+          type: string
+          format: uuid
+        destinationWalletId:
+          type: string
+          format: uuid
+        amount:
+          type: string
+          pattern: '^\d+\.\d{2,4}$'
+        currency:
+          type: string
+        description:
+          type: string
+          maxLength: 255
+        category:
+          type: string
+          enum: [P2P, MERCHANT, BILL_PAY, SALARY]
+
+    Transaction:
+      type: object
+      properties:
+        transactionId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [PENDING, PROCESSING, COMPLETED, FAILED, REVERSED]
+        amount:
+          type: string
+        fee:
+          type: string
+        completedAt:
+          type: string
+          format: date-time
+
+paths:
+  /wallets:
+    get:
+      tags: [Wallets]
+      summary: Liste des wallets
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Wallet'
+    post:
+      tags: [Wallets]
+      summary: Créer un wallet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currency]
+              properties:
+                currency:
+                  type: string
+                type:
+                  type: string
+                  enum: [PERSONAL, BUSINESS, SAVINGS]
+                label:
+                  type: string
+      responses:
+        '201':
+          description: Wallet créé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Wallet'
+
+  /wallets/{walletId}/balance:
+    get:
+      tags: [Wallets]
+      summary: Solde du wallet
+      parameters:
+        - name: walletId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+
+  /transactions/transfer:
+    post:
+      tags: [Transactions]
+      summary: Transfert interne P2P
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferRequest'
+      responses:
+        '201':
+          description: Transaction complétée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '409':
+          description: Idempotency key duplicate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Solde insuffisant ou limite dépassée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /payments/qr/generate:
+    post:
+      tags: [Payments]
+      summary: Générer QR Code paiement
+      responses:
+        '201':
+          description: QR Code généré
+
+  /kyc/submit:
+    post:
+      tags: [Compliance]
+      summary: Soumettre documents KYC
+      responses:
+        '202':
+          description: KYC en cours de review
+
+  /admin/accounts/{userId}/freeze:
+    post:
+      tags: [Admin]
+      summary: Geler un compte
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Compte gelé

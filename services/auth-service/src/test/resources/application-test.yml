@@ -1,0 +1,22 @@
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+  kafka:
+    listener:
+      auto-startup: false
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+
+villagesat:
+  internal-service-token: test-internal-token
+  security:
+    oauth2:
+      enabled: false
+  auth:
+    mfa:
+      encryption-key: test-encryption-key-32bytes!!!!

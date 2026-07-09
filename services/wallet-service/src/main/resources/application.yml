@@ -1,0 +1,71 @@
+spring:
+  application:
+    name: wallet-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:villagesat}
+    username: ${DB_USER:villagesat}
+    password: ${DB_PASSWORD:villagesat_secret}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        default_schema: wallets
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    schemas: wallets
+    default-schema: wallets
+    table: flyway_wallet_history
+    locations: classpath:db/migration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:redis_secret}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    consumer:
+      group-id: wallet-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+villagesat:
+  internal-service-token: ${INTERNAL_SERVICE_TOKEN:dev-internal-token}
+  transaction-service:
+    url: ${TRANSACTION_SERVICE_URL:http://localhost:8084}
+  keycloak:
+    jwk-set-uri: ${KEYCLOAK_JWK_URI:http://127.0.0.1:8180/realms/villagesat/protocol/openid-connect/certs}
+
+server:
+  port: 8083
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: when_authorized
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.villagesat: INFO
+  pattern:
+    console: '{"timestamp":"%d","level":"%p","traceId":"%X{traceId}","service":"wallet-service","msg":"%m"}%n'

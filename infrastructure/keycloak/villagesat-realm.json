@@ -1,0 +1,85 @@
+{
+  "realm": "villagesat",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "failureFactor": 5,
+  "maxFailureWaitSeconds": 900,
+  "roles": {
+    "realm": [
+      { "name": "CUSTOMER", "description": "Client final" },
+      { "name": "MERCHANT", "description": "Marchand" },
+      { "name": "AGENT", "description": "Agent mobile money" },
+      { "name": "COMPLIANCE_OFFICER", "description": "Officier conformité KYC/AML" },
+      { "name": "FRAUD_ANALYST", "description": "Analyste fraude" },
+      { "name": "ADMIN", "description": "Administrateur" },
+      { "name": "SERVICE", "description": "Compte de service inter-microservices" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "villagesat-api",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "protocol": "openid-connect",
+      "redirectUris": ["http://localhost:*", "https://api.villagesat.com/*", "https://payment.afidingcapital.com/*"],
+      "webOrigins": ["+"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "optionalClientScopes": ["offline_access"],
+      "protocolMappers": [
+        {
+          "name": "mfa_verified",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "user.attribute": "mfa_verified",
+            "claim.name": "mfa_verified",
+            "jsonType.label": "boolean",
+            "id.token.claim": "true",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "villagesat-service",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "service-client-secret-change-in-prod",
+      "serviceAccountsEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": false,
+      "protocol": "openid-connect"
+    }
+  ],
+  "users": [
+    {
+      "username": "demo.customer@villagesat.com",
+      "email": "demo.customer@villagesat.com",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Jean",
+      "lastName": "Kabongo",
+      "credentials": [
+        { "type": "password", "value": "SecureP@ss123!", "temporary": false }
+      ],
+      "realmRoles": ["CUSTOMER"],
+      "attributes": {
+        "mfa_verified": ["true"],
+        "kyc_level": ["0"],
+        "phone": ["+243812345678"],
+        "countryCode": ["CD"]
+      }
+    }
+  ]
+}

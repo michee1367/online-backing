@@ -1,0 +1,130 @@
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: villagesat
+spec:
+  mtls:
+    mode: STRICT
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: permissive-dev
+  namespace: villagesat-dev
+spec:
+  mtls:
+    mode: PERMISSIVE
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: villagesat-services
+  namespace: villagesat
+spec:
+  host: "*.villagesat.svc.cluster.local"
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+    connectionPool:
+      tcp:
+        maxConnections: 1000
+      http:
+        h2UpgradePolicy: UPGRADE
+        http1MaxPendingRequests: 100
+        http2MaxRequests: 1000
+        maxRequestsPerConnection: 100
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: villagesat-api
+  namespace: villagesat
+spec:
+  hosts:
+    - api.villagesat.com
+  gateways:
+    - villagesat-gateway
+  http:
+    - match:
+        - uri:
+            prefix: /api/v1/wallets
+      route:
+        - destination:
+            host: wallet-service
+            port:
+              number: 8083
+    - match:
+        - uri:
+            prefix: /api/v1/transactions
+      route:
+        - destination:
+            host: transaction-service
+            port:
+              number: 8084
+    - match:
+        - uri:
+            prefix: /api/v1/payments
+      route:
+        - destination:
+            host: payment-service
+            port:
+              number: 8085
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: villagesat-gateway
+  namespace: villagesat
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 443
+        name: https
+        protocol: HTTPS
+      tls:
+        mode: SIMPLE
+        credentialName: villagesat-tls-cert
+      hosts:
+        - api.villagesat.com
+        - auth.villagesat.com
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-internal-from-outside
+  namespace: villagesat
+spec:
+  selector:
+    matchLabels:
+      app: wallet-service
+  action: DENY
+  rules:
+    - from:
+        - source:
+            notNamespaces: ["villagesat"]
+      to:
+        - operation:
+            paths: ["/internal/*"]
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: RequestAuthentication
+metadata:
+  name: jwt-auth
+  namespace: villagesat
+spec:
+  selector:
+    matchLabels:
+      istio: ingressgateway
+  jwtRules:
+    - issuer: https://auth.villagesat.com/realms/villagesat
+      jwksUri: https://auth.villagesat.com/realms/villagesat/protocol/openid-connect/certs
+      forwardOriginalToken: true
