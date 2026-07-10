@@ -16,13 +16,13 @@ public interface PaymentUseCase {
 
     Payment initiatePayment(InitiatePaymentCommand command);
 
-    Payment confirmPayment(String reference, ConfirmPaymentCommand confirmPaymentCommand);
+    Payment confirmPayment(UUID reference, ConfirmPaymentCommand confirmPaymentCommand);
 
-    Payment getPayment(String reference);
+    Payment getPayment(UUID reference);
 
     List<Payment> getByMerchant(UUID merchantId);
 
-    Payment refundPayment(String reference, UUID merchantUserId);
+    Payment refundPayment(UUID reference, UUID merchantUserId);
 
     public QrCode generateQrCode(GenerateQrCommand command);
 

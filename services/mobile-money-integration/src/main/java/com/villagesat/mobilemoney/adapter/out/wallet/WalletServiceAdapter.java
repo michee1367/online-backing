@@ -21,11 +21,14 @@ public class WalletServiceAdapter implements WalletCreditPort, WalletDebitPort {
 
     private static final Logger log = LoggerFactory.getLogger(WalletServiceAdapter.class);
     private final RestClient restClient;
+    private final String internalToken;
 
     public WalletServiceAdapter(
         RestClient.Builder restClientBuilder,
-        @Value("${app.services.wallet-url}") String walletUrl
+        @Value("${app.services.wallet-url}") String walletUrl,
+        @Value("${villagesat.internal-service-token:dev-internal-token}") String internalToken
     ) {
+        this.internalToken = internalToken;
         this.restClient = restClientBuilder
                 .baseUrl(walletUrl)
                 .build();
@@ -40,6 +43,7 @@ public class WalletServiceAdapter implements WalletCreditPort, WalletDebitPort {
         restClient.post()
                 .uri("/{walletId}/credit", walletId)
                 .contentType(MediaType.APPLICATION_JSON)
+                .header("X-Internal-Service-Token", internalToken)
                 .body(request)
                 .retrieve()
                 // 💡 Gestion globale ou fine des statuts d'erreur
@@ -58,6 +62,7 @@ public class WalletServiceAdapter implements WalletCreditPort, WalletDebitPort {
         restClient.post()
                 .uri("/{walletId}/debit", walletId)
                 .contentType(MediaType.APPLICATION_JSON)
+                .header("X-Internal-Service-Token", internalToken)
                 .body(request)
                 .retrieve()
                 // 💡 Interception spécifique des erreurs du Wallet

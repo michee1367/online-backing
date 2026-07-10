@@ -9,11 +9,11 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 @Component
-public class SimulatedWalletCreditAdapter implements WalletCreditPort {
+public class SimulatedWalletCreditAdapter {
 
     private static final Logger log = LoggerFactory.getLogger(SimulatedWalletCreditAdapter.class);
 
-    @Override
+    //@Override
     public void creditWallet(UUID walletId, BigDecimal amount, String currency, UUID reference) {
         log.info("Simulated wallet credit: walletId={} amount={} {} ref={}",
                 walletId, amount, currency, reference);
