@@ -1,6 +1,8 @@
 package com.villagesat.wallet.adapter.out.persistence;
 
 import com.villagesat.wallet.adapter.out.persistence.entity.WalletEntity;
+import com.villagesat.wallet.domain.model.Wallet;
+
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -21,6 +23,8 @@ public interface WalletJpaRepository extends JpaRepository<WalletEntity, UUID> {
     boolean existsByAccountNumber(String accountNumber);
 
     Optional<WalletEntity> findByAccountNumber(String accountNumber);
+
+    Optional<Wallet> findByUserIdAndCurrency(UUID userId, String currency);
 
     @Query("SELECT w FROM WalletEntity w WHERE w.id = :id")
     @org.springframework.data.jpa.repository.Lock(LockModeType.PESSIMISTIC_WRITE)

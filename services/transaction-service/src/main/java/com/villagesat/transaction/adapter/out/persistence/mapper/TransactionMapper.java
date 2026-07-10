@@ -20,6 +20,7 @@ public final class TransactionMapper {
                 entity.getFeeAmount(),
                 entity.getCurrency(),
                 entity.getDescription(),
+                entity.getExternalReference(),
                 entity.getInitiatedBy(),
                 entity.getFraudScore() != null ? entity.getFraudScore().intValue() : null,
                 entity.getId().getCreatedAt(),
@@ -41,7 +42,9 @@ public final class TransactionMapper {
         entity.setFeeAmount(transaction.feeAmount());
         entity.setCurrency(transaction.currency());
         entity.setDescription(transaction.description());
+        entity.setExternalReference(transaction.externalReference());
         entity.setInitiatedBy(transaction.initiatedBy());
+        
         if (transaction.fraudScore() != null) {
             entity.setFraudScore(transaction.fraudScore().shortValue());
         }

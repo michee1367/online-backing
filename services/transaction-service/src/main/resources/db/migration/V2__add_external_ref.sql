@@ -1,0 +1,1 @@
+ALTER TABLE transactions.transactions ADD external_reference VARCHAR(255) NOT NULL;

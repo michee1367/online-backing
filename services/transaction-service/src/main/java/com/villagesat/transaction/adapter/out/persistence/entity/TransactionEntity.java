@@ -46,6 +46,9 @@ public class TransactionEntity implements Persistable<TransactionId> {
     @Column(length = 255)
     private String description;
 
+    @Column(name = "external_reference", length = 255)
+    private String externalReference;
+
     @Column(name = "initiated_by", nullable = false)
     private UUID initiatedBy;
 
@@ -110,6 +113,8 @@ public class TransactionEntity implements Persistable<TransactionId> {
     public void setCurrency(String currency) { this.currency = currency; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+    public String getExternalReference() { return externalReference; }
+    public void setExternalReference(String externalReference) { this.externalReference = description; }
     public UUID getInitiatedBy() { return initiatedBy; }
     public void setInitiatedBy(UUID initiatedBy) { this.initiatedBy = initiatedBy; }
     public Short getFraudScore() { return fraudScore; }

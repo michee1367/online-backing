@@ -23,6 +23,10 @@ public class TransactionLimitService implements TransactionLimitPort {
 
     @Override
     public void validateDebitWithinLimits(Wallet wallet, UUID transactionId, BigDecimal amount) {
+
+        if (wallet.type().equals(Wallet.WalletType.SYSTEM)) {
+            return;
+        }
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             return;
         }

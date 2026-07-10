@@ -44,11 +44,16 @@ public class WalletRepositoryAdapter implements WalletRepository {
     public boolean existsByUserIdAndCurrency(UUID userId, String currency) {
         return jpaRepository.existsByUserIdAndCurrency(userId, currency.toUpperCase());
     }
+    @Override
+    public Optional<Wallet> findByUserIdAndCurrency(UUID userId, String currency) {
+        return jpaRepository.findByUserIdAndCurrency(userId, currency.toUpperCase());
+    }
 
     @Override
     public boolean existsByAccountNumber(String accountNumber) {
         return jpaRepository.existsByAccountNumber(accountNumber);
     }
+    
 
     @Override
     public Optional<Wallet> findByAccountNumber(String accountNumber) {

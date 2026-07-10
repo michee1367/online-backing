@@ -15,7 +15,7 @@ class TransactionTest {
         UUID idempotencyKey = UUID.randomUUID();
         Transaction tx = Transaction.createInternalTransfer(
                 idempotencyKey, SOURCE_WALLET, DEST_WALLET,
-                new BigDecimal("1000"), new BigDecimal("100"), "CDF", "test", USER_ID);
+                new BigDecimal("1000"), new BigDecimal("100"), "CDF",  "test", "P2P-11100", USER_ID);
 
         assertThat(tx.status()).isEqualTo(Transaction.TransactionStatus.PENDING);
 
@@ -31,7 +31,7 @@ class TransactionTest {
     void fail_setsFailedStatusAndReason() {
         Transaction tx = Transaction.createInternalTransfer(
                 UUID.randomUUID(), SOURCE_WALLET, DEST_WALLET,
-                new BigDecimal("500"), BigDecimal.ZERO, "CDF", null, USER_ID);
+                new BigDecimal("500"), BigDecimal.ZERO, "CDF", null, "P2P-11100", USER_ID);
 
         Transaction failed = tx.markProcessing().fail("wallet debit error");
 

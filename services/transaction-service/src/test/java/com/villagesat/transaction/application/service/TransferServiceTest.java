@@ -23,6 +23,7 @@ import static com.villagesat.transaction.support.TransactionTestFixtures.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -70,7 +71,7 @@ class TransferServiceTest {
             TransferService.TransferResult result = transferService.executeTransfer(
                     new TransferService.TransferCommand(
                             idempotencyKey, SOURCE_WALLET, DEST_WALLET,
-                            new BigDecimal("5000.0000"), "CDF", "P2P"));
+                            new BigDecimal("5000.0000"), "CDF", "P2P-111", "P2P"));
 
             assertThat(result.status()).isEqualTo("COMPLETED");
             assertThat(result.fee()).isEqualTo("100.0000");
@@ -97,7 +98,7 @@ class TransferServiceTest {
             assertThatThrownBy(() -> transferService.executeTransfer(
                     new TransferService.TransferCommand(
                             idempotencyKey, SOURCE_WALLET, DEST_WALLET,
-                            new BigDecimal("1000"), "CDF", null)))
+                            new BigDecimal("1000"), "CDF", "P2P-112", null)))
                     .isInstanceOf(TransferService.FraudBlockedException.class);
 
             verifyNoInteractions(walletClient);
@@ -109,7 +110,7 @@ class TransferServiceTest {
     void executeTransfer_cachedIdempotencyKey_returnsWithoutWalletCalls() {
         UUID idempotencyKey = UUID.randomUUID();
         TransferService.TransferResult cached = new TransferService.TransferResult(
-                UUID.randomUUID(), "COMPLETED", "1000", "100", "1100", null);
+                UUID.randomUUID(), "COMPLETED", "1000", "100", "1100", "P2P-113", null);
         when(idempotencyService.getCachedResponse(idempotencyKey, TransferService.TransferResult.class))
                 .thenReturn(Optional.of(cached));
 
@@ -117,7 +118,7 @@ class TransferServiceTest {
             TransferService.TransferResult result = transferService.executeTransfer(
                     new TransferService.TransferCommand(
                             idempotencyKey, SOURCE_WALLET, DEST_WALLET,
-                            new BigDecimal("1000"), "CDF", null));
+                            new BigDecimal("1000"), "CDF", "P2P-115", null));
 
             assertThat(result).isEqualTo(cached);
             verifyNoInteractions(walletClient, fraudScoringPort);
@@ -134,7 +135,7 @@ class TransferServiceTest {
         assertThatThrownBy(() -> transferService.executeTransfer(
                 new TransferService.TransferCommand(
                         idempotencyKey, SOURCE_WALLET, DEST_WALLET,
-                        new BigDecimal("1000"), "CDF", null)))
+                        new BigDecimal("1000"), "CDF", "P2P-116", null)))
                 .isInstanceOf(TransferService.DuplicateTransactionException.class);
     }
 
@@ -153,7 +154,7 @@ class TransferServiceTest {
             assertThatThrownBy(() -> transferService.executeTransfer(
                     new TransferService.TransferCommand(
                             idempotencyKey, SOURCE_WALLET, DEST_WALLET,
-                            new BigDecimal("1000"), "CDF", null)))
+                            new BigDecimal("1000"), "CDF", "P2P-117", null)))
                     .isInstanceOf(RuntimeException.class);
 
             ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);

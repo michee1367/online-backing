@@ -14,9 +14,12 @@ public interface WalletRepository {
 
     Optional<Wallet> findByIdAndUserId(UUID id, UUID userId);
 
+    //Optional<Wallet> findOrCreateWalletSystem();
+
     List<Wallet> findByUserId(UUID userId);
 
     boolean existsByUserIdAndCurrency(UUID userId, String currency);
+    public Optional<Wallet> findByUserIdAndCurrency(UUID userId, String currency) ;
 
     boolean existsByAccountNumber(String accountNumber);
 

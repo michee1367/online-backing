@@ -3,6 +3,9 @@ package com.villagesat.transaction.application.service;
 import com.villagesat.common.idempotency.IdempotencyService;
 import com.villagesat.common.security.SecurityUtils;
 import com.villagesat.transaction.adapter.out.wallet.WalletClient;
+import com.villagesat.transaction.application.service.TransferService.DuplicateTransactionException;
+import com.villagesat.transaction.application.service.TransferService.FraudBlockedException;
+import com.villagesat.transaction.application.service.TransferService.TransferResult;
 import com.villagesat.transaction.domain.model.Transaction;
 import com.villagesat.transaction.domain.port.out.FraudScoringPort;
 import com.villagesat.transaction.domain.port.out.TransactionEventPublisher;
@@ -69,7 +72,7 @@ public class TransferService {
         // 4. Create pending transaction
         Transaction transaction = Transaction.createInternalTransfer(
                 command.idempotencyKey(), command.sourceWalletId(), command.destinationWalletId(),
-                command.amount(), fee, command.currency(), command.description(), userId);
+                command.amount(), fee, command.currency(), command.description(), command.externalReference(), userId);
 
         transaction = transactionRepository.save(transaction.markProcessing());
 
@@ -102,6 +105,7 @@ public class TransferService {
             UUID destinationWalletId,
             BigDecimal amount,
             String currency,
+            String externalReference,
             String description
     ) {}
 
@@ -111,12 +115,13 @@ public class TransferService {
             String amount,
             String fee,
             String totalDebited,
+            String externalReference,
             Instant completedAt
     ) {
         static TransferResult from(Transaction t) {
             return new TransferResult(t.id(), t.status().name(), t.amount().toPlainString(),
                     t.feeAmount().toPlainString(),
-                    t.amount().add(t.feeAmount()).toPlainString(), t.completedAt());
+                    t.amount().add(t.feeAmount()).toPlainString(), t.externalReference(), t.completedAt());
         }
     }
 

@@ -21,7 +21,7 @@ public record Wallet(
         Instant createdAt,
         long version
 ) {
-    public enum WalletType { PERSONAL, BUSINESS, ESCROW, SAVINGS }
+    public enum WalletType { PERSONAL, BUSINESS, ESCROW, SAVINGS, SYSTEM }
     public enum WalletStatus { ACTIVE, FROZEN, CLOSED }
 
     public Wallet freeze() {

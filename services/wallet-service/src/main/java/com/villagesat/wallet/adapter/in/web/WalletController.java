@@ -54,6 +54,39 @@ public class WalletController {
                 .orElse(zeroBalance(wallet.id()));
         return ResponseEntity.status(HttpStatus.CREATED).body(WalletResponse.from(wallet, balance));
     }
+    @GetMapping("/system/currencies/{currency}")
+    @PreAuthorize("hasRole('SERVICE')")
+    @Operation(summary = "Créer un wallet")
+    public ResponseEntity<WalletResponse> getSystemWallet(@PathVariable("currency") String  currency) {
+
+        //UUID userId = SecurityUtils.getCurrentUserId();
+
+        Wallet wallet = walletUseCase.getSystemWallet(currency);
+        Balance balance = balanceRepository.findByWalletId(wallet.id())
+                .orElse(zeroBalance(wallet.id()));
+                
+        return ResponseEntity.status(HttpStatus.CREATED).body(WalletResponse.from(wallet, balance));
+    }
+
+    @GetMapping("/users/{userId}/currencies/{currency}/types/{type}")
+    @PreAuthorize("hasRole('SERVICE')")
+    @Operation(summary = "Créer un wallet")
+    public ResponseEntity<WalletResponse> getUserWallet(
+        @PathVariable("userId") UUID  userId,
+        @PathVariable("currency") String  currency,
+        @PathVariable("type") Wallet.WalletType  type
+    ) {
+
+        //UUID userId = SecurityUtils.getCurrentUserId();
+
+        Wallet wallet = walletUseCase.getUserWallet(userId, currency, type);
+        Balance balance = balanceRepository.findByWalletId(wallet.id())
+                .orElse(zeroBalance(wallet.id()));
+                
+        return ResponseEntity.status(HttpStatus.CREATED).body(WalletResponse.from(wallet, balance));
+    }
+
+    //getUserWallet(UUID userId, String currency, Wallet.WalletType walletType)
 
     @GetMapping
     @PreAuthorize("hasRole('CUSTOMER')")

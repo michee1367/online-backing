@@ -43,7 +43,7 @@ public class TransactionController {
                 request.destinationWalletId(),
                 new BigDecimal(request.amount()),
                 request.currency(),
-                request.description()));
+                request.description(), request.externalReference()));
 
         return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
@@ -53,6 +53,7 @@ public class TransactionController {
             @NotNull UUID destinationWalletId,
             @NotBlank @Pattern(regexp = "^\\d+(\\.\\d{1,4})?$") String amount,
             @NotBlank @Pattern(regexp = "^[A-Z]{3}$") String currency,
-            String description
+            String description,
+            String externalReference
     ) {}
 }

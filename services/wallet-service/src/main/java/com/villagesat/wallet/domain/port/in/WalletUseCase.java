@@ -9,6 +9,10 @@ public interface WalletUseCase {
 
     Wallet createWallet(CreateWalletCommand command);
 
+    Wallet getSystemWallet(String currency);
+
+    Wallet getUserWallet(UUID userId, String currency, Wallet.WalletType walletType);
+
     Wallet getWallet(UUID walletId, UUID userId);
 
     List<Wallet> listWallets(UUID userId);
