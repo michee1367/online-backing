@@ -195,7 +195,7 @@ class TransferServiceTest {
             assertThatThrownBy(() -> transferService.executeTransfer(
                     new TransferService.TransferCommand(
                             idempotencyKey, SOURCE_WALLET, DEST_WALLET,
-                            new BigDecimal("1000"), "CDF", null)))
+                            new BigDecimal("1000"), "CDF", "TEST-55788", null)))
                     .isInstanceOf(TransferService.CurrencyMismatchException.class)
                     .hasMessageContaining("CDF vs USD");
 
@@ -216,7 +216,7 @@ class TransferServiceTest {
             assertThatThrownBy(() -> transferService.executeTransfer(
                     new TransferService.TransferCommand(
                             idempotencyKey, SOURCE_WALLET, DEST_WALLET,
-                            new BigDecimal("1000"), "USD", null)))
+                            new BigDecimal("1000"), "USD", "TEST-332123", null)))
                     .isInstanceOf(TransferService.CurrencyMismatchException.class)
                     .hasMessageContaining("USD vs CDF");
 
