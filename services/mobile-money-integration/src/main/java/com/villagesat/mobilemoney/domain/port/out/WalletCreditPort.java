@@ -4,6 +4,6 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 public interface WalletCreditPort {
-    void creditWallet(UUID walletId, BigDecimal amount, String currency, UUID transactionId)
+    void creditWallet(UUID walletId, BigDecimal amount, String currency, String rederence)
         throws WalletBusinessException, RemoteWalletUnavailableException, RemoteInsufficientFundsException;
 }

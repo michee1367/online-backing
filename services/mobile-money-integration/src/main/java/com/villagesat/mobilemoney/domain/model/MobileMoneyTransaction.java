@@ -156,7 +156,8 @@ public class MobileMoneyTransaction {
         this.failedReason = reason;
     }
 
-    public void markPending() {
+    public void markPending(String providerRef) {
         this.status = TransactionStatus.PENDING_CONFIRMATION;
+        this.providerRef = providerRef;
     }
 }

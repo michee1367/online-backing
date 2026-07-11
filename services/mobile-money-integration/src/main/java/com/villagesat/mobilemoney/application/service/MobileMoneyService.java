@@ -148,6 +148,7 @@ public class MobileMoneyService implements MobileMoneyUseCase {
             tx.markCompleted(command.providerRef());
             if (tx.getTransactionType() == TransactionType.DEPOSIT) {
                 walletCreditPort.creditWallet(tx.getWalletId(), tx.getAmount(), tx.getCurrency(), tx.getExternalRef());
+                //walletCreditPort.creditWallet(tx.getWalletId(), tx.getAmount(), tx.getCurrency(), tx.getExternalRef());
                 eventPublisher.publishDeposit(tx);
             } else {
                 eventPublisher.publishWithdrawal(tx);
@@ -187,12 +188,13 @@ public class MobileMoneyService implements MobileMoneyUseCase {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     protected MobileMoneyTransaction finalizeSuccessTransaction(UUID id, String providerRef, TransactionType type) {
         MobileMoneyTransaction tx = transactionRepository.findById(id).orElseThrow();
-        tx.markCompleted(providerRef);
         
         if (type == TransactionType.DEPOSIT) {
-            walletCreditPort.creditWallet(tx.getWalletId(), tx.getAmount(), tx.getCurrency(), tx.getExternalRef());
+            //walletCreditPort.creditWallet(tx.getWalletId(), tx.getAmount(), tx.getCurrency(), tx.getExternalRef());
+            tx.markPending(providerRef);
             eventPublisher.publishDeposit(tx);
         } else {
+            tx.markCompleted(providerRef);
             eventPublisher.publishWithdrawal(tx);
         }
         return transactionRepository.save(tx);
