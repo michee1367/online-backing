@@ -78,6 +78,10 @@ class TransferIntegrationTest {
         reset(walletClient, fraudScoringPort);
         when(fraudScoringPort.score(any())).thenReturn(
                 new FraudScoringPort.FraudResult(5, FraudScoringPort.FraudAction.ALLOW));
+        when(walletClient.getWallet(TransactionTestFixtures.SOURCE_WALLET))
+                .thenReturn(new WalletClient.WalletResponse(TransactionTestFixtures.SOURCE_WALLET, "CDF"));
+        when(walletClient.getWallet(TransactionTestFixtures.DEST_WALLET))
+                .thenReturn(new WalletClient.WalletResponse(TransactionTestFixtures.DEST_WALLET, "CDF"));
     }
 
     @Test
@@ -189,6 +193,29 @@ class TransferIntegrationTest {
                     assertThat(tx.failedReason()).contains("limit exceeded");
                 });
 
+        verify(walletClient, never()).credit(any(), any(), any(), any());
+    }
+
+    @Test
+    void transfer_currencyMismatch_returns400() throws Exception {
+        when(walletClient.getWallet(TransactionTestFixtures.DEST_WALLET))
+                .thenReturn(new WalletClient.WalletResponse(TransactionTestFixtures.DEST_WALLET, "USD"));
+
+        mockMvc.perform(post("/api/v1/transactions/transfer")
+                        .header("Idempotency-Key", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "sourceWalletId": "%s",
+                                  "destinationWalletId": "%s",
+                                  "amount": "1000.0000",
+                                  "currency": "CDF"
+                                }
+                                """.formatted(TransactionTestFixtures.SOURCE_WALLET, TransactionTestFixtures.DEST_WALLET)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CURRENCY_MISMATCH"));
+
+        verify(walletClient, never()).debit(any(), any(), any(), any());
         verify(walletClient, never()).credit(any(), any(), any(), any());
     }
 }

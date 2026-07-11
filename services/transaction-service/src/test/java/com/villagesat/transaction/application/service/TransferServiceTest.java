@@ -7,6 +7,7 @@ import com.villagesat.transaction.domain.model.Transaction;
 import com.villagesat.transaction.domain.port.out.FraudScoringPort;
 import com.villagesat.transaction.domain.port.out.TransactionEventPublisher;
 import com.villagesat.transaction.domain.port.out.TransactionRepository;
+import com.villagesat.transaction.domain.port.out.WalletQueryPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,6 +38,9 @@ class TransferServiceTest {
     WalletClient walletClient;
 
     @Mock
+    WalletQueryPort walletQueryPort;
+
+    @Mock
     FraudScoringPort fraudScoringPort;
 
     @Mock
@@ -52,16 +56,25 @@ class TransferServiceTest {
         transferService = new TransferService(
                 transactionRepository,
                 walletClient,
+                walletQueryPort,
                 fraudScoringPort,
                 eventPublisher,
                 idempotencyService,
                 new FeeCalculator());
     }
 
+    private void stubMatchingWallets() {
+        when(walletQueryPort.findById(SOURCE_WALLET))
+                .thenReturn(new WalletQueryPort.WalletInfo(SOURCE_WALLET, "CDF"));
+        when(walletQueryPort.findById(DEST_WALLET))
+                .thenReturn(new WalletQueryPort.WalletInfo(DEST_WALLET, "CDF"));
+    }
+
     @Test
     void executeTransfer_success_debitsWithFeeAndCreditsAmount() {
         UUID idempotencyKey = UUID.randomUUID();
         stubIdempotencyFresh(idempotencyKey);
+        stubMatchingWallets();
         when(fraudScoringPort.score(any())).thenReturn(new FraudScoringPort.FraudResult(10, FraudScoringPort.FraudAction.ALLOW));
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -90,6 +103,7 @@ class TransferServiceTest {
     void executeTransfer_fraudBlocked_doesNotCallWallet() {
         UUID idempotencyKey = UUID.randomUUID();
         stubIdempotencyFresh(idempotencyKey);
+        stubMatchingWallets();
         when(fraudScoringPort.score(any())).thenReturn(new FraudScoringPort.FraudResult(99, FraudScoringPort.FraudAction.BLOCK));
 
         try (MockedStatic<SecurityUtils> security = mockStatic(SecurityUtils.class)) {
@@ -143,6 +157,7 @@ class TransferServiceTest {
     void executeTransfer_walletDebitFails_marksTransactionFailed() {
         UUID idempotencyKey = UUID.randomUUID();
         stubIdempotencyFresh(idempotencyKey);
+        stubMatchingWallets();
         when(fraudScoringPort.score(any())).thenReturn(new FraudScoringPort.FraudResult(0, FraudScoringPort.FraudAction.ALLOW));
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
         doThrow(new RuntimeException("insufficient funds"))
@@ -162,6 +177,51 @@ class TransferServiceTest {
             assertThat(captor.getAllValues()).anyMatch(
                     t -> t.status() == Transaction.TransactionStatus.FAILED);
             verify(walletClient, never()).credit(any(), any(), any(), any());
+        }
+    }
+
+    @Test
+    void executeTransfer_walletCurrenciesMismatch_throwsBeforeFraudCheck() {
+        UUID idempotencyKey = UUID.randomUUID();
+        stubIdempotencyFresh(idempotencyKey);
+        when(walletQueryPort.findById(SOURCE_WALLET))
+                .thenReturn(new WalletQueryPort.WalletInfo(SOURCE_WALLET, "CDF"));
+        when(walletQueryPort.findById(DEST_WALLET))
+                .thenReturn(new WalletQueryPort.WalletInfo(DEST_WALLET, "USD"));
+
+        try (MockedStatic<SecurityUtils> security = mockStatic(SecurityUtils.class)) {
+            security.when(SecurityUtils::getCurrentUserId).thenReturn(USER_ID);
+
+            assertThatThrownBy(() -> transferService.executeTransfer(
+                    new TransferService.TransferCommand(
+                            idempotencyKey, SOURCE_WALLET, DEST_WALLET,
+                            new BigDecimal("1000"), "CDF", null)))
+                    .isInstanceOf(TransferService.CurrencyMismatchException.class)
+                    .hasMessageContaining("CDF vs USD");
+
+            verifyNoInteractions(fraudScoringPort, walletClient);
+            verify(transactionRepository, never()).save(any());
+        }
+    }
+
+    @Test
+    void executeTransfer_requestCurrencyMismatch_throwsBeforeFraudCheck() {
+        UUID idempotencyKey = UUID.randomUUID();
+        stubIdempotencyFresh(idempotencyKey);
+        stubMatchingWallets();
+
+        try (MockedStatic<SecurityUtils> security = mockStatic(SecurityUtils.class)) {
+            security.when(SecurityUtils::getCurrentUserId).thenReturn(USER_ID);
+
+            assertThatThrownBy(() -> transferService.executeTransfer(
+                    new TransferService.TransferCommand(
+                            idempotencyKey, SOURCE_WALLET, DEST_WALLET,
+                            new BigDecimal("1000"), "USD", null)))
+                    .isInstanceOf(TransferService.CurrencyMismatchException.class)
+                    .hasMessageContaining("USD vs CDF");
+
+            verifyNoInteractions(fraudScoringPort, walletClient);
+            verify(transactionRepository, never()).save(any());
         }
     }
 

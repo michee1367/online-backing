@@ -227,6 +227,13 @@ public class WalletService implements WalletUseCase {
 
     @Override
     @Transactional(readOnly = true)
+    public Wallet getWalletById(UUID walletId) {
+        return walletRepository.findById(walletId)
+                .orElseThrow(() -> new BalanceService.WalletNotFoundException(walletId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<Wallet> listWallets(UUID userId) {
         return walletRepository.findByUserId(userId);
     }

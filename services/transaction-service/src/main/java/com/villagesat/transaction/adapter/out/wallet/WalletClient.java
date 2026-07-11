@@ -43,5 +43,16 @@ public class WalletClient {
                 .block();
     }
 
+    public WalletResponse getWallet(UUID walletId) {
+        return webClient.get()
+                .uri("/internal/wallets/{walletId}", walletId)
+                .header("X-Internal-Service-Token", internalToken)
+                .retrieve()
+                .bodyToMono(WalletResponse.class)
+                .block();
+    }
+
     record WalletOperationRequest(UUID transactionId, String amount, String description) {}
+
+    record WalletResponse(UUID walletId, String currency) {}
 }

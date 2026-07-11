@@ -24,4 +24,10 @@ public class TransactionExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiError(
                 "TXN_DUPLICATE", ex.getMessage(), UUID.randomUUID(), Instant.now()));
     }
+
+    @ExceptionHandler(TransferService.CurrencyMismatchException.class)
+    public ResponseEntity<ApiError> handleCurrencyMismatch(TransferService.CurrencyMismatchException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiError(
+                "CURRENCY_MISMATCH", ex.getMessage(), UUID.randomUUID(), Instant.now()));
+    }
 }
