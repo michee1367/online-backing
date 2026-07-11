@@ -1,131 +1,175 @@
 package com.villagesat.payment.adapter.out.external;
 
 import com.villagesat.payment.domain.port.out.WalletOperationPort;
+import com.villagesat.payment.domain.port.out.RemoteInsufficientFundsException;
+import com.villagesat.payment.domain.port.out.RemoteWalletUnavailableException;
+import io.github.resilience4j.retry.annotation.Retry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClient;
 
 import java.math.BigDecimal;
 import java.util.UUID;
 
-
-import com.villagesat.payment.domain.port.out.RemoteInsufficientFundsException;
-import com.villagesat.payment.domain.port.out.RemoteWalletUnavailableException;
-import io.github.resilience4j.retry.annotation.Retry;
-import org.springframework.http.HttpStatusCode;
-import org.springframework.http.MediaType;
-import org.springframework.web.client.RestClient;
-
-import org.springframework.beans.factory.annotation.Value;
-
-/**
- * Adaptateur simulé pour les opérations wallet.
- * En production, cet adaptateur appellera le wallet-service via HTTP ou messaging.
- */
 @Component
 public class WalletOperationAdapter implements WalletOperationPort {
 
     private static final Logger log = LoggerFactory.getLogger(WalletOperationAdapter.class);
-    private final RestClient restClient;
+    
+    // Deux clients REST distincts pour cibler chaque microservice
+    private final RestClient walletRestClient;
+    private final RestClient transactionRestClient;
     private final String internalToken;
 
     public WalletOperationAdapter(
-        RestClient.Builder restClientBuilder,
-        @Value("${app.services.wallet-url}") String walletUrl,
-        @Value("${villagesat.internal-service-token:dev-internal-token}") String internalToken
+            RestClient.Builder restClientBuilder,
+            @Value("${villagesat.services.wallet-url}") String walletServiceUrl,
+            @Value("${villagesat.services.transaction-url}") String transactionServiceUrl,
+            @Value("${villagesat.internal-service-token:dev-internal-token}") String internalToken
     ) {
         this.internalToken = internalToken;
-        this.restClient = restClientBuilder
-                .baseUrl(walletUrl)
+        
+        // Initialisation du client pour le microservice Wallet
+        this.walletRestClient = restClientBuilder
+                .clone() // clone() permet d'isoler la configuration de la BaseURL
+                .baseUrl(walletServiceUrl)
+                .build();
+                
+        // Initialisation du client pour le microservice Transaction
+        this.transactionRestClient = restClientBuilder
+                .clone()
+                .baseUrl(transactionServiceUrl)
                 .build();
     }
-    /* 
-    @Override
-    public void debitCustomer(UUID walletId, BigDecimal amount, UUID reference) {
-        log.info("[SIMULATED] Debit customer wallet {}: amount={}, reference={}",
-                walletId, amount, reference);
-    }
-
-    @Override
-    public void creditMerchant(UUID merchantId, BigDecimal amount, UUID reference) {
-        log.info("[SIMULATED] Credit merchant {}: amount={}, reference={}",
-                merchantId, amount, reference);
-    }*/
-
 
     @Override
     @Retry(name = "walletApiRetry")
-    public void creditMerchant(UUID walletId, BigDecimal amount, String currency, String reference) {
-        log.info("[SIMULATED] Debit customer wallet {}: amount={}, reference={}",
-                walletId, amount, reference);
-        return;
-        /* 
-        log.info("Appel API Wallet (Crédit) — walletId={}, ref={}", walletId, reference);
-        WalletTransactionRequest request = new WalletTransactionRequest(amount, currency, reference);
-
-        restClient.post()
-                .uri("/{walletId}/credit", walletId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .header("X-Internal-Service-Token", internalToken)
-                .body(request)
-                .retrieve()
-                // 💡 Gestion globale ou fine des statuts d'erreur
-                .onStatus(HttpStatusCode::isError, (req, response) -> {
-                    handleWalletError(walletId, response.getStatusCode());
-                })
-                .toBodilessEntity();*/
+    public void creditMerchant(UUID merchantId, BigDecimal amount, String currency, String reference) {
+        log.info("Traitement Crédit Marchand — Récupération du wallet système [{}]", currency);
+        
+        // 1. Appel HTTP vers wallet-service pour récupérer le compte système
+        WalletResponse systemWallet = fetchSystemWalletFromWalletService(currency);
+        WalletResponse merchantWallet = fetchMerchantWalletFromWalletService(merchantId, currency);
+        
+        // 2. Appel HTTP vers transaction-service pour effectuer le transfert (Système -> Marchand)
+        executeTransferInTransactionService(
+                UUID.randomUUID(), // Clé d'idempotence générée pour l'opération
+                systemWallet.id(), 
+                merchantWallet.id(), 
+                amount, 
+                currency, 
+                reference
+        );
     }
 
     @Override
     @Retry(name = "walletApiRetry")
-    public void debitCustomer(UUID walletId, BigDecimal amount, String currency, String reference) {
-        log.info("Appel API Wallet (Débit) — walletId={}, ref={}", walletId, reference);
-        log.info("[SIMULATED] Debit customer wallet {}: amount={}, reference={}",
-                walletId, amount, reference);
-        return;
-        /* 
-        WalletTransactionRequest request = new WalletTransactionRequest(amount, currency, reference);
-
-        restClient.post()
-                .uri("/{walletId}/debit", walletId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .header("X-Internal-Service-Token", internalToken)
-                .body(request)
-                .retrieve()
-                // 💡 Interception spécifique des erreurs du Wallet
-                .onStatus(HttpStatusCode::isError, (req, response) -> {
-                    handleWalletError(walletId, response.getStatusCode());
-                })
-                .toBodilessEntity();*/
+    public void debitCustomer(UUID customerWalletId, BigDecimal amount, String currency, String reference) {
+        log.info("Traitement Débit Client — Récupération du wallet système [{}]", currency);
+        
+        // 1. Appel HTTP vers wallet-service pour récupérer le compte système
+        WalletResponse systemWallet = fetchSystemWalletFromWalletService(currency);
+        
+        // 2. Appel HTTP vers transaction-service pour effectuer le transfert (Client -> Système)
+        executeTransferInTransactionService(
+                UUID.randomUUID(), 
+                customerWalletId, 
+                systemWallet.id(), 
+                amount, 
+                currency, 
+                reference
+        );
     }
 
     /**
-     * Convertit les codes d'erreur HTTP de l'API Wallet en exceptions métier claires.
+     * Appelle WALLET-SERVICE : GET /system/currencies/{currency}
      */
-    private void handleWalletError(UUID walletId, HttpStatusCode statusCode) throws java.io.IOException {
-        int code = statusCode.value();
-        log.warn("L'API Wallet a renvoyé une erreur HTTP {} pour le wallet {}", code, walletId);
-
-        // 💡 400 Bad Request : Généralement un solde insuffisant ou une validation de limite échouée
-        if (code == 400) {
-            throw new RemoteInsufficientFundsException(walletId);
-        }
-        
-        // 💡 423 Locked / 403 Forbidden : Portefeuille gelé ou bloqué
-        if (code == 423 || code == 403) {
-            throw new RemoteWalletUnavailableException(walletId, "Portefeuille gelé ou restreint applicativement");
-        }
-
-        // 💡 404 Not Found : Le portefeuille n'existe pas
-        if (code == 404) {
-            throw new RemoteWalletUnavailableException(walletId, "Portefeuille introuvable côté distant");
-        }
-
-        // Laisse passer les autres codes (ex: 500) pour que Resilience4j sache qu'il doit déclencher un Retry
-        throw new org.springframework.web.client.HttpServerErrorException(statusCode, "Erreur interne du Wallet Service");
+    private WalletResponse fetchSystemWalletFromWalletService(String currency) {
+        return walletRestClient.get()
+                .uri("/system/currencies/{currency}", currency.toUpperCase())
+                .header("X-Internal-Service-Token", internalToken)
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .onStatus(HttpStatusCode::isError, (req, response) -> {
+                    log.error("Échec récupération wallet système pour la devise {} - Status: {}", currency, response.getStatusCode());
+                    throw new RemoteWalletUnavailableException(null, "Wallet système introuvable ou indisponible");
+                })
+                .body(WalletResponse.class);
     }
 
-    private record WalletTransactionRequest(BigDecimal amount, String currency, String reference) {}
+    
+    /**
+     * Appelle WALLET-SERVICE : GET /system/currencies/{currency}
+     */
+    private WalletResponse fetchMerchantWalletFromWalletService(UUID merchantId, String currency) {
+        return walletRestClient.get()
+                .uri("/users/{merchantId}/currencies/{currency}/types/business", merchantId, currency.toUpperCase())
+                .header("X-Internal-Service-Token", internalToken)
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .onStatus(HttpStatusCode::isError, (req, response) -> {
+                    log.error("Échec récupération wallet système pour la devise {} - Status: {}", currency, response.getStatusCode());
+                    throw new RemoteWalletUnavailableException(null, "Wallet système introuvable ou indisponible");
+                })
+                .body(WalletResponse.class);
+    }
 
+    /**
+     * Appelle TRANSACTION-SERVICE : POST /api/v1/transactions/transfer
+     */
+    private void executeTransferInTransactionService(UUID idempotencyKey, UUID sourceId, UUID destId, BigDecimal amount, String currency, String reference) {
+        TransferRequest request = new TransferRequest(
+                sourceId,
+                destId,
+                amount.toPlainString(), // Conversion propre pour matcher la validation @Pattern du controller
+                currency.toUpperCase(),
+                "Opération externe système: " + reference,
+                reference
+        );
 
+        transactionRestClient.post()
+                .uri("/api/v1/transactions/transfer")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Idempotency-Key", idempotencyKey.toString())
+                .header("X-Internal-Service-Token", internalToken)
+                .body(request)
+                .retrieve()
+                .onStatus(HttpStatusCode::isError, (req, response) -> {
+                    handleTransactionError(sourceId, response.getStatusCode());
+                })
+                .toBodilessEntity();
+    }
+
+    /**
+     * Gestion des exceptions basées sur les retours HTTP du transaction-service
+     */
+    private void handleTransactionError(UUID walletId, HttpStatusCode statusCode) {
+        int code = statusCode.value();
+        log.warn("Le service transaction a renvoyé une erreur HTTP {}", code);
+
+        if (code == 400) throw new RemoteInsufficientFundsException(walletId);
+        if (code == 423 || code == 403) throw new RemoteWalletUnavailableException(walletId, "Compte bloqué ou interdit");
+        if (code == 404) throw new RemoteWalletUnavailableException(walletId, "Compte introuvable dans le système");
+        
+        throw new org.springframework.web.client.HttpServerErrorException(statusCode, "Erreur interne de transaction");
+    }
+
+    // --- DTOs pour le mapping des échanges REST ---
+    
+    // Calqué sur la réponse attendue depuis le wallet-service
+    private record WalletResponse(UUID id, String currency) {}
+
+    // Calqué sur le corps de requête attendu par le transaction-service
+    private record TransferRequest(
+            UUID sourceWalletId,
+            UUID destinationWalletId,
+            String amount,
+            String currency,
+            String description,
+            String externalReference
+    ) {}
 }

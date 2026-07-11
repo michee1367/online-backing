@@ -41,6 +41,9 @@ spring:
 
 villagesat:
   internal-service-token: ${INTERNAL_SERVICE_TOKEN:dev-internal-token}
+  services:
+    wallet-url: ${WALLET_SERVICE_URL:http://localhost:8083/api/v1/wallets}
+    transaction-url: ${TRANSACTION_SERVICE_URL:http://localhost:8084/api/v1/transactions}
 
 server:
   port: 8086

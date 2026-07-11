@@ -5,6 +5,7 @@ import com.villagesat.wallet.application.service.BalanceService;
 import com.villagesat.wallet.application.service.WalletService;
 import com.villagesat.wallet.domain.model.Balance;
 import com.villagesat.wallet.domain.model.Wallet;
+import com.villagesat.wallet.domain.model.Wallet.WalletType;
 import com.villagesat.wallet.domain.port.in.WalletUseCase;
 import com.villagesat.wallet.domain.port.out.BalanceRepository;
 import io.swagger.v3.oas.annotations.Operation;
@@ -17,6 +18,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -67,23 +70,32 @@ public class WalletController {
                 
         return ResponseEntity.status(HttpStatus.CREATED).body(WalletResponse.from(wallet, balance));
     }
-
     @GetMapping("/users/{userId}/currencies/{currency}/types/{type}")
     @PreAuthorize("hasRole('SERVICE')")
-    @Operation(summary = "Créer un wallet")
+    @Operation(summary = "Récupérer ou créer le wallet d'un utilisateur par type")
     public ResponseEntity<WalletResponse> getUserWallet(
-        @PathVariable("userId") UUID  userId,
-        @PathVariable("currency") String  currency,
-        @PathVariable("type") Wallet.WalletType  type
+            @PathVariable("userId") UUID userId,
+            @PathVariable("currency") String currency,
+            @PathVariable("type") String type
     ) {
+        // 1. Validation de la conversion de l'enum
+        WalletType enumType = convertToWalletType(type);
+        
+        // C'est 'enumType' qu'il faut tester pour null, pas 'type' !
+        if (enumType == null) {
+            // ResponseStatusException est parfait ici pour renvoyer un code 400 Bad Request propre
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Type de wallet invalide: " + type);
+        }
 
-        //UUID userId = SecurityUtils.getCurrentUserId();
-
-        Wallet wallet = walletUseCase.getUserWallet(userId, currency, type);
+        // 2. Récupération / Création via le UseCase
+        Wallet wallet = walletUseCase.getUserWallet(userId, currency.toUpperCase(), enumType);
+        
+        // 3. Récupération du solde
         Balance balance = balanceRepository.findByWalletId(wallet.id())
-                .orElse(zeroBalance(wallet.id()));
+                .orElseGet(() -> zeroBalance(wallet.id())); // orElseGet est plus performant ici
                 
-        return ResponseEntity.status(HttpStatus.CREATED).body(WalletResponse.from(wallet, balance));
+        // 4. On retourne un statut OK (200) car c'est un GET (ou CREATED 201 si votre usecase crée systématiquement)
+        return ResponseEntity.status(HttpStatus.OK).body(WalletResponse.from(wallet, balance));
     }
 
     //getUserWallet(UUID userId, String currency, Wallet.WalletType walletType)
@@ -130,6 +142,16 @@ public class WalletController {
 
     private static Balance zeroBalance(UUID walletId) {
         return new Balance(walletId, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, null, 0L);
+    }
+
+    // Votre méthode de conversion sécurisée
+    private WalletType convertToWalletType(String typeStr) {
+        if (typeStr == null) return null;
+        try {
+            return WalletType.valueOf(typeStr.toUpperCase().trim());
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     public record CreateWalletRequest(
