@@ -68,3 +68,21 @@ logging:
     com.villagesat: INFO
   pattern:
     console: '{"timestamp":"%d","level":"%p","traceId":"%X{traceId}","service":"payment-service","msg":"%m"}%n'
+
+
+# ===================================================================
+# SECTION PROFIL DEV (Surcharges appliquées UNIQUEMENT si le profil dev est actif)
+# ===================================================================
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+logging:
+  level:
+    com.vectraxis: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.security.web.access: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n" # Remplacement par un format lisible en dev
