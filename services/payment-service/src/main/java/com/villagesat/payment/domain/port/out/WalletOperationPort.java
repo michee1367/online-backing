@@ -5,9 +5,9 @@ import java.util.UUID;
 
 public interface WalletOperationPort {
 
-    void debitCustomer(UUID walletId, BigDecimal amount, String currency, UUID reference) 
+    void debitCustomer(UUID walletId, BigDecimal amount, String currency, String reference) 
         throws RemoteWalletUnavailableException, RemoteInsufficientFundsException;
 
-    void creditMerchant(UUID merchantId, BigDecimal amount, String currency, UUID reference)
+    void creditMerchant(UUID merchantId, BigDecimal amount, String currency, String reference)
         throws RemoteWalletUnavailableException, RemoteInsufficientFundsException;
 }

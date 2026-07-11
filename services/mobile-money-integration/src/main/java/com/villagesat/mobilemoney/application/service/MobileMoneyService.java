@@ -60,7 +60,7 @@ public class MobileMoneyService implements MobileMoneyUseCase {
     public MobileMoneyTransaction initiateDeposit(DepositCommand command) {
         // 1. Validation hors transaction lourde
         validateProviderActive(command.provider());
-        UUID externalRef = generateExternalRef();
+        String externalRef = generateExternalRef();
 
         // 2. Écriture initiale rapide (Commit immédiat)
         MobileMoneyTransaction tx = createInitialTransaction(command.userId(), command.walletId(), 
@@ -92,7 +92,7 @@ public class MobileMoneyService implements MobileMoneyUseCase {
     @Override
     public MobileMoneyTransaction initiateWithdrawal(WithdrawalCommand command) {
         validateProviderActive(command.provider());
-        UUID externalRef = generateExternalRef();
+        String externalRef = generateExternalRef();
 
         // 1. Écriture initiale en base
         MobileMoneyTransaction tx = createInitialTransaction(command.userId(), command.walletId(), 
@@ -167,7 +167,7 @@ public class MobileMoneyService implements MobileMoneyUseCase {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     protected MobileMoneyTransaction createInitialTransaction(UUID userId, UUID walletId, MobileMoneyProvider provider, 
                                                              String phoneNumber, BigDecimal amount, String currency, 
-                                                             TransactionType type, UUID externalRef) {
+                                                             TransactionType type, String externalRef) {
         MobileMoneyTransaction tx = new MobileMoneyTransaction();
         tx.setId(UUID.randomUUID());
         tx.setUserId(userId);
@@ -240,14 +240,14 @@ public class MobileMoneyService implements MobileMoneyUseCase {
         }
     }
 
-    /*private String generateExternalRef() {
+    private String generateExternalRef() {
         
         return "MM-" + UUID.randomUUID().toString().substring(0, 12).toUpperCase();
-    }*/
+    }
 
-    private UUID generateExternalRef() {
+    /*private UUID generateExternalRef() {
         return UUID.randomUUID();
         
         //return "MM-" + UUID.randomUUID().toString().substring(0, 12).toUpperCase();
-    }
+    }*/
 }

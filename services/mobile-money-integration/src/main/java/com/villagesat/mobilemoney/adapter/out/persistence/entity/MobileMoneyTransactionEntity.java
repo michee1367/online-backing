@@ -44,7 +44,7 @@ public class MobileMoneyTransactionEntity {
     private String status;
 
     @Column(name = "external_ref", unique = true, length = 100)
-    private UUID externalRef;
+    private String externalRef;
 
     @Column(name = "provider_ref", length = 100)
     private String providerRef;
@@ -133,11 +133,11 @@ public class MobileMoneyTransactionEntity {
         this.status = status;
     }
 
-    public UUID getExternalRef() {
+    public String getExternalRef() {
         return externalRef;
     }
 
-    public void setExternalRef(UUID externalRef) {
+    public void setExternalRef(String externalRef) {
         this.externalRef = externalRef;
     }
 

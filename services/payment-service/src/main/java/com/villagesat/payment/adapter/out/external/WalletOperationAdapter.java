@@ -55,7 +55,11 @@ public class WalletOperationAdapter implements WalletOperationPort {
 
     @Override
     @Retry(name = "walletApiRetry")
-    public void creditMerchant(UUID walletId, BigDecimal amount, String currency, UUID reference) {
+    public void creditMerchant(UUID walletId, BigDecimal amount, String currency, String reference) {
+        log.info("[SIMULATED] Debit customer wallet {}: amount={}, reference={}",
+                walletId, amount, reference);
+        return;
+        /* 
         log.info("Appel API Wallet (Crédit) — walletId={}, ref={}", walletId, reference);
         WalletTransactionRequest request = new WalletTransactionRequest(amount, currency, reference);
 
@@ -69,13 +73,17 @@ public class WalletOperationAdapter implements WalletOperationPort {
                 .onStatus(HttpStatusCode::isError, (req, response) -> {
                     handleWalletError(walletId, response.getStatusCode());
                 })
-                .toBodilessEntity();
+                .toBodilessEntity();*/
     }
 
     @Override
     @Retry(name = "walletApiRetry")
-    public void debitCustomer(UUID walletId, BigDecimal amount, String currency, UUID reference) {
+    public void debitCustomer(UUID walletId, BigDecimal amount, String currency, String reference) {
         log.info("Appel API Wallet (Débit) — walletId={}, ref={}", walletId, reference);
+        log.info("[SIMULATED] Debit customer wallet {}: amount={}, reference={}",
+                walletId, amount, reference);
+        return;
+        /* 
         WalletTransactionRequest request = new WalletTransactionRequest(amount, currency, reference);
 
         restClient.post()
@@ -88,7 +96,7 @@ public class WalletOperationAdapter implements WalletOperationPort {
                 .onStatus(HttpStatusCode::isError, (req, response) -> {
                     handleWalletError(walletId, response.getStatusCode());
                 })
-                .toBodilessEntity();
+                .toBodilessEntity();*/
     }
 
     /**
@@ -117,7 +125,7 @@ public class WalletOperationAdapter implements WalletOperationPort {
         throw new org.springframework.web.client.HttpServerErrorException(statusCode, "Erreur interne du Wallet Service");
     }
 
-    private record WalletTransactionRequest(BigDecimal amount, String currency, UUID reference) {}
+    private record WalletTransactionRequest(BigDecimal amount, String currency, String reference) {}
 
 
 }

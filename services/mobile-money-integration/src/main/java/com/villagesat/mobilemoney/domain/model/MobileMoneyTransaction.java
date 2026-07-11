@@ -15,7 +15,7 @@ public class MobileMoneyTransaction {
     private String currency;
     private TransactionType transactionType;
     private TransactionStatus status;
-    private UUID externalRef;
+    private String externalRef;
     private String providerRef;
     private Instant createdAt;
     private Instant completedAt;
@@ -97,11 +97,11 @@ public class MobileMoneyTransaction {
         this.status = status;
     }
 
-    public UUID getExternalRef() {
+    public String getExternalRef() {
         return externalRef;
     }
 
-    public void setExternalRef(UUID externalRef) {
+    public void setExternalRef(String externalRef) {
         this.externalRef = externalRef;
     }
 

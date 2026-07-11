@@ -36,8 +36,10 @@ public class WalletServiceAdapter implements WalletCreditPort, WalletDebitPort {
 
     @Override
     @Retry(name = "walletApiRetry")
-    public void creditWallet(UUID walletId, BigDecimal amount, String currency, UUID reference) {
+    public void creditWallet(UUID walletId, BigDecimal amount, String currency, String reference) {
         log.info("Appel API Wallet (Crédit) — walletId={}, ref={}", walletId, reference);
+        return ;
+        /* 
         WalletTransactionRequest request = new WalletTransactionRequest(amount, currency, reference);
 
         restClient.post()
@@ -50,13 +52,14 @@ public class WalletServiceAdapter implements WalletCreditPort, WalletDebitPort {
                 .onStatus(HttpStatusCode::isError, (req, response) -> {
                     handleWalletError(walletId, response.getStatusCode());
                 })
-                .toBodilessEntity();
+                .toBodilessEntity();*/
     }
 
     @Override
     @Retry(name = "walletApiRetry")
-    public void debitWallet(UUID walletId, BigDecimal amount, String currency, UUID reference) {
+    public void debitWallet(UUID walletId, BigDecimal amount, String currency, String reference) {
         log.info("Appel API Wallet (Débit) — walletId={}, ref={}", walletId, reference);
+        /* 
         WalletTransactionRequest request = new WalletTransactionRequest(amount, currency, reference);
 
         restClient.post()
@@ -69,7 +72,7 @@ public class WalletServiceAdapter implements WalletCreditPort, WalletDebitPort {
                 .onStatus(HttpStatusCode::isError, (req, response) -> {
                     handleWalletError(walletId, response.getStatusCode());
                 })
-                .toBodilessEntity();
+                .toBodilessEntity();*/
     }
 
     /**
@@ -98,5 +101,5 @@ public class WalletServiceAdapter implements WalletCreditPort, WalletDebitPort {
         throw new org.springframework.web.client.HttpServerErrorException(statusCode, "Erreur interne du Wallet Service");
     }
 
-    private record WalletTransactionRequest(BigDecimal amount, String currency, UUID reference) {}
+    private record WalletTransactionRequest(BigDecimal amount, String currency, String reference) {}
 }

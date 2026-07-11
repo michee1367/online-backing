@@ -13,7 +13,7 @@ public interface MobileMoneyGatewayPort {
             String phoneNumber,
             BigDecimal amount,
             String currency,
-            UUID externalRef,
+            String externalRef,
             String transactionType
     ) {
     }

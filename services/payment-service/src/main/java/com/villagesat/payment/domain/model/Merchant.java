@@ -14,6 +14,7 @@ public record Merchant(
         String contactEmail,
         String contactPhone,
         String callbackUrl,
+        String listProductsUrl,
         BigDecimal commissionRate,
         Instant createdAt,
         long version
@@ -45,6 +46,7 @@ public record Merchant(
                 this.contactEmail,
                 this.contactPhone,
                 this.callbackUrl,
+                this.listProductsUrl,
                 this.commissionRate,
                 this.createdAt,
                 this.version

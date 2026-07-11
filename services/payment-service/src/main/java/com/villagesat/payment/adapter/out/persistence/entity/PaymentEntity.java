@@ -22,6 +22,9 @@ public class PaymentEntity {
 
     @Column(name = "wallet_id")
     private UUID walletId;
+    
+    @Column(name = "product_id")
+    private String productId;
 
     @Column(nullable = false, precision = 19, scale = 4)
     private BigDecimal amount;
@@ -80,6 +83,8 @@ public class PaymentEntity {
     public void setCustomerId(UUID customerId) { this.customerId = customerId; }
     public UUID getWalletId() { return walletId; }
     public void setWalletId(UUID walletId) { this.walletId = walletId; }
+    public String getProductId() { return productId; }
+    public void setProductId(String productId) { this.productId = productId; }
     public BigDecimal getAmount() { return amount; }
     public void setAmount(BigDecimal amount) { this.amount = amount; }
     public BigDecimal getFee() { return fee; }

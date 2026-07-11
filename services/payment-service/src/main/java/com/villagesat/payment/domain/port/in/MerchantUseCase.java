@@ -22,6 +22,7 @@ public interface MerchantUseCase {
             String businessType,
             String contactEmail,
             String contactPhone,
-            String callbackUrl
+            String callbackUrl,
+            String listProductsUrl
     ) {}
 }

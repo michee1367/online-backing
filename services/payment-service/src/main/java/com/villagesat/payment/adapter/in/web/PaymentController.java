@@ -1,6 +1,8 @@
 package com.villagesat.payment.adapter.in.web;
 
 import com.villagesat.common.security.SecurityUtils;
+import com.villagesat.payment.adapter.in.web.PaymentController.PaymentResponse;
+import com.villagesat.payment.adapter.in.web.PaymentController.QrCodeResponse;
 import com.villagesat.payment.domain.model.Payment;
 import com.villagesat.payment.domain.model.QrCode;
 import com.villagesat.payment.domain.port.in.PaymentUseCase;
@@ -42,7 +44,8 @@ public class PaymentController {
                 request.currency(),
                 request.description(),
                 request.merchantOrderId(),
-                request.paymentMethod()
+                request.paymentMethod(),
+                request.productId()
         ));
         return ResponseEntity.status(HttpStatus.CREATED).body(PaymentResponse.from(payment));
     }
@@ -81,7 +84,7 @@ public class PaymentController {
     public ResponseEntity<QrCodeResponse> generateQr(@Valid @RequestBody GenerateQrRequest request) {
         UUID userId = SecurityUtils.getCurrentUserId();
         QrCode qr = paymentUseCase.generateQrCode(new PaymentUseCase.GenerateQrCommand(
-                userId, request.amount(), request.currency(), request.description()));
+                userId, request.amount(), request.currency(), request.description(), request.productId()));
         return ResponseEntity.status(HttpStatus.CREATED).body(QrCodeResponse.from(qr));
     }
 
@@ -89,6 +92,7 @@ public class PaymentController {
             @NotNull @DecimalMin("0.01") BigDecimal amount,
             @Pattern(regexp = "^[A-Z]{3}$") String currency,
             @Size(max = 255) String description,
+            @Size(max = 100) String productId,
             @Size(max = 100) String merchantOrderId,
             Payment.PaymentMethod paymentMethod
     ) {}
@@ -100,7 +104,9 @@ public class PaymentController {
     public record GenerateQrRequest(
             @NotNull @DecimalMin("0.01") BigDecimal amount,
             @Pattern(regexp = "^[A-Z]{3}$") String currency,
+            @Size(max = 100) String productId,            
             @Size(max = 255) String description
+
     ) {}
 
     public record PaymentResponse(

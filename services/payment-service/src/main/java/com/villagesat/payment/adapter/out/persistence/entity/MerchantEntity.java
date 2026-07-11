@@ -38,6 +38,8 @@ public class MerchantEntity {
 
     @Column(name = "callback_url", length = 500)
     private String callbackUrl;
+    @Column(name = "list_products_url", length = 500)
+    private String listProductsUrl;
 
     @Column(name = "commission_rate", nullable = false, precision = 5, scale = 4)
     private BigDecimal commissionRate;
@@ -83,6 +85,8 @@ public class MerchantEntity {
     public void setContactPhone(String contactPhone) { this.contactPhone = contactPhone; }
     public String getCallbackUrl() { return callbackUrl; }
     public void setCallbackUrl(String callbackUrl) { this.callbackUrl = callbackUrl; }
+    public String getListProductsUrl() { return listProductsUrl; }
+    public void setListProductsUrl(String listProductsUrl) { this.listProductsUrl = listProductsUrl; }
     public BigDecimal getCommissionRate() { return commissionRate; }
     public void setCommissionRate(BigDecimal commissionRate) { this.commissionRate = commissionRate; }
     public Instant getCreatedAt() { return createdAt; }

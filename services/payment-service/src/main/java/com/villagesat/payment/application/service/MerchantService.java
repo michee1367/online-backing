@@ -39,6 +39,7 @@ public class MerchantService implements MerchantUseCase {
                 command.contactEmail(),
                 command.contactPhone(),
                 command.callbackUrl(),
+                command.listProductsUrl(),
                 Merchant.DEFAULT_COMMISSION_RATE,
                 Instant.now(),
                 0L

@@ -1,6 +1,7 @@
 package com.villagesat.payment.adapter.in.web;
 
 import com.villagesat.common.security.SecurityUtils;
+//import com.villagesat.payment.adapter.in.web.MerchantController.RegisterMerchantRequest.MerchantResponse;
 import com.villagesat.payment.domain.model.Merchant;
 import com.villagesat.payment.domain.port.in.MerchantUseCase;
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,7 +40,8 @@ public class MerchantController {
                 request.businessType(),
                 request.contactEmail(),
                 request.contactPhone(),
-                request.callbackUrl()
+                request.callbackUrl(),
+                request.listProductsUrl()
         ));
         return ResponseEntity.status(HttpStatus.CREATED).body(MerchantResponse.from(merchant));
     }
@@ -60,7 +62,9 @@ public class MerchantController {
             @Size(max = 50) String businessType,
             @Email @Size(max = 255) String contactEmail,
             @Size(max = 20) String contactPhone,
-            @Size(max = 500) String callbackUrl
+            @Size(max = 500) String callbackUrl,            
+            @Size(max = 500) String listProductsUrl
+
     ) {}
 
     public record MerchantResponse(
@@ -72,6 +76,7 @@ public class MerchantController {
             String contactEmail,
             String contactPhone,
             String callbackUrl,
+            String listProductsList,
             String commissionRate
     ) {
         static MerchantResponse from(Merchant m) {
@@ -84,6 +89,7 @@ public class MerchantController {
                     m.contactEmail(),
                     m.contactPhone(),
                     m.callbackUrl(),
+                    m.listProductsUrl(),
                     m.commissionRate().toPlainString()
             );
         }

@@ -58,7 +58,7 @@ public class PaymentService implements PaymentUseCase {
             throw new MerchantNotActiveException(merchant.id());
         }
 
-        UUID reference = generateReference();
+        String reference = generateReference();
         String qrData = qrCodeGenerator.generate(
                 merchant.id(), merchant.merchantCode(),
                 command.amount(), command.currency(), reference);
@@ -68,6 +68,7 @@ public class PaymentService implements PaymentUseCase {
                 merchant.id(),
                 null,
                 null,
+                command.productId(),
                 command.amount(),
                 BigDecimal.ZERO,
                 command.currency() != null ? command.currency() : "CDF",
@@ -87,7 +88,7 @@ public class PaymentService implements PaymentUseCase {
     }
 
     @Override
-    public Payment confirmPayment(UUID reference, ConfirmPaymentCommand command) {
+    public Payment confirmPayment(String reference, ConfirmPaymentCommand command) {
         Payment payment = paymentRepository.findByReference(reference)
                 .orElseThrow(() -> new PaymentNotFoundException(reference));
 
@@ -131,7 +132,7 @@ public class PaymentService implements PaymentUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public Payment getPayment(UUID reference) {
+    public Payment getPayment(String reference) {
         return paymentRepository.findByReference(reference)
                 .orElseThrow(() -> new PaymentNotFoundException(reference));
     }
@@ -143,7 +144,7 @@ public class PaymentService implements PaymentUseCase {
     }
 
     @Override
-    public Payment refundPayment(UUID reference, UUID merchantUserId) {
+    public Payment refundPayment(String reference, UUID merchantUserId) {
         Payment payment = paymentRepository.findByReference(reference)
                 .orElseThrow(() -> new PaymentNotFoundException(reference));
 
@@ -164,7 +165,7 @@ public class PaymentService implements PaymentUseCase {
         if (payment.walletId() != null) {
             
             walletOperationPort.debitCustomer(payment.walletId(),
-                    payment.amount().negate(), payment.currency(), UUID.randomUUID());
+                    payment.amount().negate(), payment.currency(), "REFUND-".concat(reference));
         }
 
         Payment refunded = payment.refund();
@@ -186,7 +187,7 @@ public class PaymentService implements PaymentUseCase {
             throw new MerchantNotActiveException(merchant.id());
         }
 
-        UUID reference = generateReference();
+        String reference = generateReference();
         String currency = command.currency() != null ? command.currency() : "CDF";
         String qrData = qrCodeGenerator.generate(
                 merchant.id(), merchant.merchantCode(),
@@ -196,6 +197,7 @@ public class PaymentService implements PaymentUseCase {
                 UUID.randomUUID(),
                 merchant.id(),
                 null, null,
+                command.productId(),
                 command.amount(),
                 BigDecimal.ZERO,
                 currency,
@@ -221,19 +223,19 @@ public class PaymentService implements PaymentUseCase {
         );
     }
 
-    private UUID generateReference() {
-        return UUID.randomUUID();
-        //return "PAY-" + String.format("%012d", Math.abs(RANDOM.nextLong()) % 1_000_000_000_000L);
+    private String generateReference() {
+        //return UUID.randomUUID();
+        return "PAY-" + String.format("%012d", Math.abs(RANDOM.nextLong()) % 1_000_000_000_000L);
     }
 
     public static class PaymentNotFoundException extends RuntimeException {
-        public PaymentNotFoundException(UUID reference) {
+        public PaymentNotFoundException(String reference) {
             super("Payment not found: " + reference);
         }
     }
 
     public static class InvalidPaymentStateException extends RuntimeException {
-        public InvalidPaymentStateException(UUID reference, String current, String expected) {
+        public InvalidPaymentStateException(String reference, String current, String expected) {
             super("Payment %s is in state %s, expected %s".formatted(reference, current, expected));
         }
     }
@@ -245,7 +247,7 @@ public class PaymentService implements PaymentUseCase {
     }
 
     public static class UnauthorizedPaymentAccessException extends RuntimeException {
-        public UnauthorizedPaymentAccessException(UUID reference) {
+        public UnauthorizedPaymentAccessException(String reference) {
             super("Unauthorized access to payment: " + reference);
         }
     }

@@ -9,6 +9,7 @@ public record Payment(
         UUID merchantId,
         UUID customerId,
         UUID walletId,
+        String productId,
         BigDecimal amount,
         BigDecimal fee,
         String currency,
@@ -64,25 +65,25 @@ public record Payment(
     }
 
     public Payment processing(UUID customerId, UUID walletId) {
-        return new Payment(id, merchantId, customerId, walletId, amount, fee, currency,
+        return new Payment(id, merchantId, customerId, walletId, productId, amount, fee, currency,
                 PaymentStatus.PROCESSING, paymentMethod, reference, description, merchantOrderId,
                 qrCodeData, createdAt, Instant.now(), null, version);
     }
 
     public Payment complete(UUID customerId, UUID walletId, BigDecimal fee) {
-        return new Payment(id, merchantId, customerId, walletId, amount, fee, currency,
+        return new Payment(id, merchantId, customerId, walletId, productId, amount, fee, currency,
                 PaymentStatus.COMPLETED, paymentMethod, reference, description, merchantOrderId,
                 qrCodeData, createdAt, Instant.now(), null, version);
     }
 
     public Payment fail(String reason) {
-        return new Payment(id, merchantId, customerId, walletId, amount, fee, currency,
+        return new Payment(id, merchantId, customerId, walletId, productId, amount, fee, currency,
                 PaymentStatus.FAILED, paymentMethod, reference, description, merchantOrderId,
                 qrCodeData, createdAt, null, reason, version);
     }
 
     public Payment refund() {
-        return new Payment(id, merchantId, customerId, walletId, amount, fee, currency,
+        return new Payment(id, merchantId, customerId, walletId, productId, amount, fee, currency,
                 PaymentStatus.REFUNDED, paymentMethod, reference, description, merchantOrderId,
                 qrCodeData, createdAt, completedAt, null, version);
     }

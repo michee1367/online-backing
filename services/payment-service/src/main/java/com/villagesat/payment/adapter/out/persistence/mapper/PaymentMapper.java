@@ -23,6 +23,7 @@ public final class PaymentMapper {
                 entity.getContactEmail(),
                 entity.getContactPhone(),
                 entity.getCallbackUrl(),
+                entity.getListProductsUrl(),
                 entity.getCommissionRate(),
                 entity.getCreatedAt(),
                 entity.getVersion() != null ? entity.getVersion() : 0L
@@ -40,6 +41,7 @@ public final class PaymentMapper {
         entity.setContactEmail(domain.contactEmail());
         entity.setContactPhone(domain.contactPhone());
         entity.setCallbackUrl(domain.callbackUrl());
+        entity.setListProductsUrl(domain.listProductsUrl());
         entity.setCommissionRate(domain.commissionRate());
         entity.setCreatedAt(domain.createdAt());
         entity.setVersion(domain.version());
@@ -52,6 +54,7 @@ public final class PaymentMapper {
                 entity.getMerchantId(),
                 entity.getCustomerId(),
                 entity.getWalletId(),
+                entity.getProductId(),
                 entity.getAmount(),
                 entity.getFee(),
                 entity.getCurrency(),

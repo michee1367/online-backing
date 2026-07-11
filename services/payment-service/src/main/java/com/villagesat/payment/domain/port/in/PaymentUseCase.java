@@ -16,13 +16,13 @@ public interface PaymentUseCase {
 
     Payment initiatePayment(InitiatePaymentCommand command);
 
-    Payment confirmPayment(UUID reference, ConfirmPaymentCommand confirmPaymentCommand);
+    Payment confirmPayment(String reference, ConfirmPaymentCommand confirmPaymentCommand);
 
-    Payment getPayment(UUID reference);
+    Payment getPayment(String reference);
 
     List<Payment> getByMerchant(UUID merchantId);
 
-    Payment refundPayment(UUID reference, UUID merchantUserId);
+    Payment refundPayment(String reference, UUID merchantUserId);
 
     public QrCode generateQrCode(GenerateQrCommand command);
 
@@ -32,7 +32,8 @@ public interface PaymentUseCase {
             String currency,
             String description,
             String merchantOrderId,
-            PaymentMethod paymentMethod
+            PaymentMethod paymentMethod,
+            String productId
     ) {}
     public record ConfirmPaymentCommand(
             UUID customerId,
@@ -52,7 +53,8 @@ public interface PaymentUseCase {
             UUID merchantUserId,
             BigDecimal amount,
             String currency,
-            String description
+            String description,
+            String productId
     ) {
         // Constructeur compact pour valider les contraintes de base (Fail-Fast)
         public GenerateQrCommand {
